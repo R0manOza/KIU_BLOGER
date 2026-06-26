@@ -21,8 +21,33 @@
                                class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 sm:mt-0">
                                 Edit profile
                             </a>
+                        @elseif (auth()->user()->isFollowing($user))
+                            <form method="POST" action="{{ route('follow.destroy', $user) }}" class="mt-2 sm:mt-0">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                                    Following
+                                </button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('follow.store', $user) }}" class="mt-2 sm:mt-0">
+                                @csrf
+                                <button type="submit"
+                                        class="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                                    Follow
+                                </button>
+                            </form>
                         @endif
                     @endauth
+                </div>
+
+                {{-- Follower / following counts --}}
+                <div class="mt-3 flex items-center justify-center gap-6 text-sm sm:justify-start">
+                    <span><span class="font-bold text-slate-900">{{ $user->followers_count }}</span>
+                        <span class="text-slate-500">Followers</span></span>
+                    <span><span class="font-bold text-slate-900">{{ $user->following_count }}</span>
+                        <span class="text-slate-500">Following</span></span>
                 </div>
                 @if ($user->profile?->bio)
                     <p class="mt-3 text-sm text-slate-600">{{ $user->profile->bio }}</p>

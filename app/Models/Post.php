@@ -67,6 +67,36 @@ class Post extends Model
     }
 
     /**
+     * One-to-Many: a post collects many up/down votes.
+     */
+    public function votes(): HasMany
+    {
+        return $this->hasMany(Vote::class);
+    }
+
+    /**
+     * Net score = (upvotes) - (downvotes). Uses the eager-loaded
+     * `votes_sum_value` (from withSum) when available to avoid N+1 queries,
+     * otherwise falls back to a direct SUM query.
+     */
+    public function score(): int
+    {
+        return (int) ($this->votes_sum_value ?? $this->votes()->sum('value'));
+    }
+
+    /**
+     * The signed value (+1, -1, or 0) of the given user's vote on this post.
+     */
+    public function userVote(?User $user): int
+    {
+        if (! $user) {
+            return 0;
+        }
+
+        return (int) ($this->votes()->where('user_id', $user->id)->value('value') ?? 0);
+    }
+
+    /**
      * Query scope to fetch only published posts.
      */
     public function scopePublished(Builder $query): Builder

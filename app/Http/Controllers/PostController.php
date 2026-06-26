@@ -32,6 +32,7 @@ class PostController extends Controller implements HasMiddleware
     {
         $query = Post::with(['user', 'category', 'tags'])
             ->withCount('comments')
+            ->withSum('votes', 'value')
             ->published()
             ->latest();
 

@@ -43,6 +43,40 @@
             </div>
         </div>
 
+        {{-- Voting --}}
+        @php($myVote = auth()->check() ? $post->userVote(auth()->user()) : 0)
+        <div class="mb-8 flex items-center gap-2">
+            @auth
+                <form method="POST" action="{{ route('posts.vote', $post) }}">
+                    @csrf
+                    <input type="hidden" name="value" value="1">
+                    <button type="submit" aria-label="Upvote"
+                            class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition
+                            {{ $myVote === 1 ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50' }}">
+                        <span class="text-base leading-none">&#9650;</span> Upvote
+                    </button>
+                </form>
+
+                <span class="min-w-[2.5rem] text-center text-lg font-bold text-slate-900">{{ $post->score() }}</span>
+
+                <form method="POST" action="{{ route('posts.vote', $post) }}">
+                    @csrf
+                    <input type="hidden" name="value" value="-1">
+                    <button type="submit" aria-label="Downvote"
+                            class="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold transition
+                            {{ $myVote === -1 ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-300 text-slate-600 hover:bg-slate-50' }}">
+                        <span class="text-base leading-none">&#9660;</span> Downvote
+                    </button>
+                </form>
+            @else
+                <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-500">
+                    <span class="text-base font-bold text-slate-700">{{ $post->score() }}</span>
+                    <span>points ·</span>
+                    <a href="{{ route('login') }}" class="font-semibold text-brand-600 hover:underline">Log in to vote</a>
+                </div>
+            @endauth
+        </div>
+
         {{-- Cover --}}
         @if ($post->coverUrl())
             <img src="{{ $post->coverUrl() }}" alt="{{ $post->title }}"

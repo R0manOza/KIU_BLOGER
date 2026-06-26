@@ -15,6 +15,7 @@ class HomeController extends Controller
     {
         $featured = Post::with(['user', 'category'])
             ->withCount('comments')
+            ->withSum('votes', 'value')
             ->published()
             ->latest()
             ->take(3)

@@ -71,6 +71,8 @@ class DatabaseSeeder extends Seeder
             ['Getting Started with Laravel', 'Technology', 'A beginner-friendly look at the PHP framework powering this blog.'],
         ];
 
+        $allUsers = $authors->concat([$admin]);
+
         foreach ($samplePosts as $i => [$title, $catName, $excerpt]) {
             $author = $authors->random();
             $post = Post::create([
@@ -99,7 +101,24 @@ class DatabaseSeeder extends Seeder
                     ])->random(),
                 ]);
             }
+
+            // Random up/down votes (mostly upvotes) from other users.
+            $allUsers->where('id', '!=', $author->id)
+                ->random(rand(1, $allUsers->count() - 1))
+                ->each(fn ($voter) => $post->votes()->create([
+                    'user_id' => $voter->id,
+                    'value' => rand(1, 5) === 1 ? -1 : 1,
+                ]));
         }
+
+        // ---- Follows -----------------------------------------------------
+        // Each user follows a couple of random other users.
+        $allUsers->each(function ($user) use ($allUsers) {
+            $targets = $allUsers->where('id', '!=', $user->id)
+                ->random(rand(1, 2))
+                ->pluck('id');
+            $user->following()->syncWithoutDetaching($targets->all());
+        });
     }
 
     private function sampleBody(string $title): string

@@ -3,9 +3,11 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\VoteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -55,6 +57,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+
+    // Follow / unfollow another author.
+    Route::post('/authors/{user}/follow', [FollowController::class, 'store'])->name('follow.store');
+    Route::delete('/authors/{user}/follow', [FollowController::class, 'destroy'])->name('follow.destroy');
+
+    // Upvote / downvote a post.
+    Route::post('/posts/{post}/vote', [VoteController::class, 'store'])->name('posts.vote');
 });
 
 /*

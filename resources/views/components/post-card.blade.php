@@ -33,7 +33,9 @@
                 <img src="{{ $post->user->avatarUrl() }}" class="h-6 w-6 rounded-full object-cover" alt="">
                 <span class="font-medium text-slate-600">{{ $post->user->name }}</span>
             </div>
-            <span>{{ $post->published_at?->diffForHumans() ?? $post->created_at->diffForHumans() }}</span>
+            <span class="inline-flex items-center gap-1 font-semibold text-slate-500" title="Post score">
+                <span class="text-sm leading-none text-brand-600">&#9650;</span>{{ $post->score() }}
+            </span>
         </div>
     </div>
 </article>

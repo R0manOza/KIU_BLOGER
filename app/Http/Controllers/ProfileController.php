@@ -15,8 +15,12 @@ class ProfileController extends Controller
      */
     public function show(User $user): View
     {
-        $user->load('profile');
-        $posts = $user->posts()->published()->latest()->paginate(6);
+        $user->load('profile')->loadCount(['followers', 'following']);
+        $posts = $user->posts()
+            ->published()
+            ->withSum('votes', 'value')
+            ->latest()
+            ->paginate(6);
 
         return view('profile.show', compact('user', 'posts'));
     }
