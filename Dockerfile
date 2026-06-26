@@ -1,5 +1,6 @@
 # ---- KIU Blogger production image (Laravel on PHP + Apache) ----
-FROM php:8.3-apache
+# PHP 8.4 is required because the locked Symfony packages need >= 8.4.1.
+FROM php:8.4-apache
 
 # System dependencies and PHP extensions (Postgres, zip, intl, gd).
 RUN apt-get update && apt-get install -y --no-install-recommends \
