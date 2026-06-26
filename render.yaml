@@ -1,0 +1,59 @@
+# Render Blueprint for KIU Blogger.
+# Deploy with: Render Dashboard → New → Blueprint → point at this repo.
+databases:
+  - name: kiu-blogger-db
+    plan: free
+    databaseName: kiu_blogger
+    user: kiu_blogger
+
+services:
+  - type: web
+    name: kiu-blogger
+    runtime: docker
+    plan: free
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: "KIU Blogger"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      # Generate locally with `php artisan key:generate --show` and paste here,
+      # or leave unset and the container will create an ephemeral key.
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: kiu-blogger-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: kiu-blogger-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: kiu-blogger-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: kiu-blogger-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: kiu-blogger-db
+          property: password
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: public
