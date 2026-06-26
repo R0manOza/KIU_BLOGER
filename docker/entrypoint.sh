@@ -17,6 +17,10 @@ php artisan config:clear
 php artisan migrate --force || echo "Migration step skipped/failed (continuing)."
 php artisan storage:link || true
 
+# Seed demo data on first boot (the seeder is idempotent, so this is a
+# no-op once the data already exists).
+php artisan db:seed --force || true
+
 # Cache configuration & routes for performance in production.
 php artisan config:cache || true
 php artisan route:cache || true

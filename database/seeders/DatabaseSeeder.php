@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Idempotent: skip if the demo data has already been seeded.
+        // This makes it safe to run automatically on every deploy.
+        if (User::where('email', 'admin@kiu.edu.ge')->exists()) {
+            return;
+        }
+
         // ---- Users -------------------------------------------------------
         $admin = User::create([
             'name' => 'KIU Admin',
