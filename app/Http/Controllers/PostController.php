@@ -3,14 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Event;
 use App\Models\Post;
 use App\Models\Tag;
+use App\Notifications\NewPostNotification;
+use App\Services\EventService;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PostController extends Controller implements HasMiddleware
@@ -60,7 +66,7 @@ class PostController extends Controller implements HasMiddleware
      */
     public function show(Post $post): View
     {
-        $post->load(['user.profile', 'category', 'tags', 'comments.user']);
+        $post->load(['user.profile', 'category', 'tags', 'comments.user', 'events']);
 
         return view('posts.show', compact('post'));
     }
@@ -77,6 +83,7 @@ class PostController extends Controller implements HasMiddleware
     {
         $validated = $this->validatePost($request);
 
+        $validated['body'] = HtmlSanitizer::clean($validated['body']);
         $validated['user_id'] = $request->user()->id;
         $validated['slug'] = $this->uniqueSlug($validated['title']);
         $validated['published_at'] = now();
@@ -87,6 +94,9 @@ class PostController extends Controller implements HasMiddleware
 
         $post = Post::create($validated);
         $post->tags()->sync($request->input('tags', []));
+
+        $this->syncLinkedEvent($request, $post);
+        $this->notifyFollowers($post);
 
         return redirect()->route('posts.show', $post)
             ->with('success', 'Your post has been published!');
@@ -116,8 +126,12 @@ class PostController extends Controller implements HasMiddleware
             $validated['cover_image'] = $request->file('cover_image')->store('covers', 'public');
         }
 
+        $validated['body'] = HtmlSanitizer::clean($validated['body']);
+
         $post->update($validated);
         $post->tags()->sync($request->input('tags', []));
+
+        $this->syncLinkedEvent($request, $post);
 
         return redirect()->route('posts.show', $post)
             ->with('success', 'Post updated successfully.');
@@ -144,16 +158,75 @@ class PostController extends Controller implements HasMiddleware
      */
     protected function validatePost(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,id'],
             'excerpt' => ['nullable', 'string', 'max:500'],
-            'body' => ['required', 'string', 'min:20'],
+            'body' => ['required', 'string'],
             'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'is_published' => ['sometimes', 'boolean'],
             'tags' => ['array'],
             'tags.*' => ['exists:tags,id'],
+            // Optional linked event.
+            'event_title' => ['nullable', 'string', 'max:255'],
+            'event_starts_at' => ['nullable', 'required_with:event_title', 'date'],
+            'event_ends_at' => ['nullable', 'date', 'after_or_equal:event_starts_at'],
+            'event_location' => ['nullable', 'string', 'max:255'],
         ]);
+
+        // The body must contain real text once HTML is stripped.
+        if (HtmlSanitizer::isEmpty($validated['body'])) {
+            throw ValidationException::withMessages([
+                'body' => 'The post body is required.',
+            ]);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Create or update the single event optionally attached to a post.
+     */
+    protected function syncLinkedEvent(Request $request, Post $post): void
+    {
+        if (! $request->filled('event_title')) {
+            return;
+        }
+
+        $payload = [
+            'user_id' => $post->user_id,
+            'title' => $request->input('event_title'),
+            'location' => $request->input('event_location'),
+            'starts_at' => $request->input('event_starts_at'),
+            'ends_at' => $request->input('event_ends_at'),
+            'description' => Str::limit($post->plainBody(), 200),
+        ];
+
+        $event = $post->events()->first();
+
+        if ($event) {
+            $event->update($payload);
+            EventService::handleUpdated($event);
+        } else {
+            $event = $post->events()->create($payload);
+            EventService::handleCreated($event);
+        }
+    }
+
+    /**
+     * Notify the author's followers about a newly published post.
+     */
+    protected function notifyFollowers(Post $post): void
+    {
+        if (! $post->is_published) {
+            return;
+        }
+
+        $followers = $post->user->followers()->get();
+
+        if ($followers->isNotEmpty()) {
+            Notification::send($followers, new NewPostNotification($post));
+        }
     }
 
     protected function uniqueSlug(string $title): string

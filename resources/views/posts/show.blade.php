@@ -84,13 +84,50 @@
         @endif
 
         {{-- Body --}}
-        <div class="prose-body text-lg text-slate-700">{{ $post->body }}</div>
+        <div class="prose-body text-lg text-slate-700">{!! $post->bodyHtml() !!}</div>
 
         {{-- Tags --}}
         @if ($post->tags->isNotEmpty())
             <div class="mt-8 flex flex-wrap gap-2">
                 @foreach ($post->tags as $tag)
                     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">#{{ $tag->name }}</span>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- Linked events --}}
+        @if ($post->events->isNotEmpty())
+            <div class="mt-8 space-y-3">
+                @foreach ($post->events as $event)
+                    <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex items-start gap-3">
+                            <div class="flex h-11 w-11 flex-none flex-col items-center justify-center rounded-lg text-white" style="background: {{ $event->color }}">
+                                <span class="text-[10px] font-semibold uppercase leading-none">{{ $event->starts_at->format('M') }}</span>
+                                <span class="text-lg font-bold leading-none">{{ $event->starts_at->format('j') }}</span>
+                            </div>
+                            <div>
+                                <a href="{{ route('events.show', $event) }}" class="font-semibold text-slate-900 hover:text-brand-600">{{ $event->title }}</a>
+                                <p class="text-xs text-slate-500">
+                                    {{ $event->starts_at->format('D, M j · H:i') }}@if ($event->location) · {{ $event->location }}@endif
+                                </p>
+                            </div>
+                        </div>
+                        @auth
+                            @if ($event->user_id !== auth()->id())
+                                @if ($event->isSubscribedBy(auth()->user()))
+                                    <form method="POST" action="{{ route('events.unsubscribe', $event) }}">
+                                        @csrf @method('DELETE')
+                                        <button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">On your calendar ✓</button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('events.subscribe', $event) }}">
+                                        @csrf
+                                        <button class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition">+ Add to calendar</button>
+                                    </form>
+                                @endif
+                            @endif
+                        @endauth
+                    </div>
                 @endforeach
             </div>
         @endif

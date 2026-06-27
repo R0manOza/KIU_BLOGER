@@ -39,11 +39,13 @@
         @error('excerpt')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
     </div>
 
-    {{-- Body --}}
+    {{-- Body (rich text via Trix) --}}
     <div>
         <label class="block text-sm font-semibold text-slate-700">Body</label>
-        <textarea name="body" rows="12" required
-                  class="mt-1 w-full rounded-lg border border-slate-300 px-4 py-2.5 font-serif focus:border-brand-500 focus:ring-brand-500">{{ old('body', $editing ? $post->body : '') }}</textarea>
+        <p class="text-xs text-slate-400">Use the toolbar to add headings, bold, lists, quotes and links.</p>
+        <input id="post-body" type="hidden" name="body" value="{{ old('body', $editing ? $post->body : '') }}">
+        <trix-editor input="post-body"
+                     class="trix-content mt-1 min-h-[18rem] rounded-lg border border-slate-300 bg-white px-4 py-2.5 font-serif focus:border-brand-500"></trix-editor>
         @error('body')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
     </div>
 
@@ -77,6 +79,45 @@
         </div>
     </div>
 
+    {{-- Optional linked event --}}
+    @php($linkedEvent = $editing ? $post->events->first() : null)
+    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+        <p class="text-sm font-semibold text-slate-700">Attach an event <span class="font-normal text-slate-400">(optional)</span></p>
+        <p class="text-xs text-slate-400">Linking an event lets readers add it to their calendar. Editing it later updates everyone who added it.</p>
+
+        <div class="mt-3 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600">Event title</label>
+                <input type="text" name="event_title"
+                       value="{{ old('event_title', $linkedEvent?->title) }}"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500">
+                @error('event_title')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600">Starts at</label>
+                    <input type="datetime-local" name="event_starts_at"
+                           value="{{ old('event_starts_at', $linkedEvent && $linkedEvent->starts_at ? $linkedEvent->starts_at->format('Y-m-d\TH:i') : '') }}"
+                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500">
+                    @error('event_starts_at')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600">Ends at</label>
+                    <input type="datetime-local" name="event_ends_at"
+                           value="{{ old('event_ends_at', $linkedEvent && $linkedEvent->ends_at ? $linkedEvent->ends_at->format('Y-m-d\TH:i') : '') }}"
+                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500">
+                    @error('event_ends_at')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600">Location</label>
+                <input type="text" name="event_location"
+                       value="{{ old('event_location', $linkedEvent?->location) }}"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500">
+            </div>
+        </div>
+    </div>
+
     {{-- Published toggle --}}
     <div class="flex items-center gap-2">
         <input type="hidden" name="is_published" value="0">
@@ -86,3 +127,18 @@
         <label for="is_published" class="text-sm text-slate-700">Publish immediately</label>
     </div>
 </div>
+
+@push('styles')
+    <link rel="stylesheet" href="https://unpkg.com/trix@2.1.1/dist/trix.css">
+    <style>
+        trix-editor { line-height: 1.7; }
+        trix-toolbar .trix-button-group--file-tools { display: none; } /* no file attachments */
+    </style>
+@endpush
+@push('scripts')
+    <script src="https://unpkg.com/trix@2.1.1/dist/trix.umd.min.js"></script>
+    <script>
+        // Disable drag/drop & pasted file attachments (we have no upload endpoint for them).
+        addEventListener('trix-file-accept', function (e) { e.preventDefault(); });
+    </script>
+@endpush

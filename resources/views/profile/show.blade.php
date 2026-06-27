@@ -21,23 +21,38 @@
                                class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 sm:mt-0">
                                 Edit profile
                             </a>
-                        @elseif (auth()->user()->isFollowing($user))
-                            <form method="POST" action="{{ route('follow.destroy', $user) }}" class="mt-2 sm:mt-0">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                                    Following
-                                </button>
-                            </form>
                         @else
-                            <form method="POST" action="{{ route('follow.store', $user) }}" class="mt-2 sm:mt-0">
-                                @csrf
-                                <button type="submit"
-                                        class="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
-                                    Follow
-                                </button>
-                            </form>
+                            <div class="mt-2 flex items-center gap-2 sm:mt-0">
+                                @if (auth()->user()->isFollowing($user))
+                                    <form method="POST" action="{{ route('follow.destroy', $user) }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                                            Following
+                                        </button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('follow.store', $user) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                                            Follow
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @php($followingEvents = auth()->user()->isFollowingEvents($user))
+                                <form method="POST" action="{{ route('follow.events', $user) }}">
+                                    @csrf
+                                    <button type="submit" title="Auto-add this author's events to your calendar"
+                                            class="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-semibold transition
+                                            {{ $followingEvents ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50' }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                                        {{ $followingEvents ? 'Events on' : 'Follow events' }}
+                                    </button>
+                                </form>
+                            </div>
                         @endif
                     @endauth
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\HtmlSanitizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -59,6 +60,14 @@ class Post extends Model
     }
 
     /**
+     * One-to-Many: a post can have events linked to it.
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+
+    /**
      * Many-to-Many: a post can carry many tags.
      */
     public function tags(): BelongsToMany
@@ -112,5 +121,28 @@ class Post extends Model
     public function coverUrl(): ?string
     {
         return $this->cover_image ? asset('storage/' . $this->cover_image) : null;
+    }
+
+    /**
+     * Rich-text body, sanitized for safe unescaped rendering. Legacy posts
+     * stored as plain text are escaped and have their line breaks preserved.
+     */
+    public function bodyHtml(): string
+    {
+        $body = (string) $this->body;
+
+        if (strip_tags($body) === $body) {
+            return nl2br(e($body));
+        }
+
+        return HtmlSanitizer::clean($body);
+    }
+
+    /**
+     * Plain-text version of the body for excerpts / meta (no HTML tags).
+     */
+    public function plainBody(): string
+    {
+        return trim(html_entity_decode(strip_tags((string) $this->body)));
     }
 }

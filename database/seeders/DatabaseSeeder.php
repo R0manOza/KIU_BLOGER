@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Comment;
+use App\Models\Event;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\User;
@@ -112,13 +113,43 @@ class DatabaseSeeder extends Seeder
         }
 
         // ---- Follows -----------------------------------------------------
-        // Each user follows a couple of random other users.
+        // Each user follows a couple of random other users; some also follow
+        // their events (auto-add to calendar).
         $allUsers->each(function ($user) use ($allUsers) {
-            $targets = $allUsers->where('id', '!=', $user->id)
-                ->random(rand(1, 2))
-                ->pluck('id');
-            $user->following()->syncWithoutDetaching($targets->all());
+            $targets = $allUsers->where('id', '!=', $user->id)->random(rand(1, 2));
+            foreach ($targets as $target) {
+                $user->following()->syncWithoutDetaching([
+                    $target->id => ['follow_events' => (bool) rand(0, 1)],
+                ]);
+            }
         });
+
+        // ---- Events ------------------------------------------------------
+        $eventSeeds = [
+            ['Welcome to KIU Blogger', 'Orientation Mixer', 'Main Hall', 3],
+            ['Upcoming Tech Meetups This Semester', 'KIU Dev Meetup #1', 'Lab B204', 7],
+            ['Getting Started with Laravel', 'Laravel Workshop', 'Room 110', 10],
+        ];
+
+        foreach ($eventSeeds as [$postTitle, $eventTitle, $location, $inDays]) {
+            $post = Post::where('title', $postTitle)->first();
+            $creator = $post?->user ?? $authors->random();
+
+            $event = Event::create([
+                'user_id' => $creator->id,
+                'post_id' => $post?->id,
+                'title' => $eventTitle,
+                'description' => 'Join us for ' . $eventTitle . ' — open to all KIU students.',
+                'location' => $location,
+                'starts_at' => now()->addDays($inDays)->setTime(18, 0),
+                'ends_at' => now()->addDays($inDays)->setTime(20, 0),
+            ]);
+
+            // A few other users add it to their calendar.
+            $event->subscribers()->syncWithoutDetaching(
+                $allUsers->where('id', '!=', $creator->id)->random(rand(1, 2))->pluck('id')->all()
+            );
+        }
     }
 
     private function sampleBody(string $title): string

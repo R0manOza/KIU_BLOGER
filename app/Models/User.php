@@ -80,6 +80,7 @@ class User extends Authenticatable
     public function following(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id')
+            ->withPivot('follow_events')
             ->withTimestamps();
     }
 
@@ -90,6 +91,7 @@ class User extends Authenticatable
     public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id')
+            ->withPivot('follow_events')
             ->withTimestamps();
     }
 
@@ -102,11 +104,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Is the current user following the given user's events (auto-calendar)?
+     */
+    public function isFollowingEvents(User $user): bool
+    {
+        return $this->following()
+            ->whereKey($user->id)
+            ->wherePivot('follow_events', true)
+            ->exists();
+    }
+
+    /**
      * All votes this user has cast on posts.
      */
     public function votes(): HasMany
     {
         return $this->hasMany(Vote::class);
+    }
+
+    /**
+     * One-to-Many: events this user created.
+     */
+    public function createdEvents(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+
+    /**
+     * Many-to-Many: events this user added to their personal calendar.
+     */
+    public function subscribedEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class, 'event_user')->withTimestamps();
     }
 
     /**
